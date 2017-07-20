@@ -1,4 +1,6 @@
 import numpy as np
+import scipy as sp
+import scipy.stats
 from past.builtins import xrange
 
 
@@ -155,7 +157,8 @@ class KNearestNeighbor(object):
       # neighbors. Store these labels in closest_y.                           #
       # Hint: Look up the function numpy.argsort.                             #
       #########################################################################
-      pass
+      k_nearest = np.argsort(dists[i])[:k]
+      closest_y = list(map(self.y_train.take, k_nearest))
       #########################################################################
       # TODO:                                                                 #
       # Now that you have found the labels of the k nearest neighbors, you    #
@@ -163,7 +166,7 @@ class KNearestNeighbor(object):
       # Store this label in y_pred[i]. Break ties by choosing the smaller     #
       # label.                                                                #
       #########################################################################
-      pass
+      y_pred[i] = sp.stats.mode(closest_y).mode
       #########################################################################
       #                           END OF YOUR CODE                            # 
       #########################################################################
