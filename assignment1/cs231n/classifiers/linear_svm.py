@@ -28,20 +28,37 @@ def svm_loss_naive(W, X, y, reg):
   loss = 0.0
   for i in xrange(num_train):
     scores = X[i].dot(W)
-    correct_class_score = scores[y[i]]
+    c = y[i]
+    correct_class_score = scores[c]
+    passed = 0
+    indicator =  (scores-correct_class_score+1)>0
     for j in xrange(num_classes):
-      if j == y[i]:
+      if j == c:
+        a = (-np.sum(np.delete(indicator,j))*X[i]).T
+        #print(a.shape)
+        #print(dW.shape)
+        #print('Xi',X[i].shape)
+        #print(dW[:,j].shape)
+        dW[:,j] += a
         continue
+      dW[:,j] += indicator[j]*X[i].T
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         loss += margin
+        passed += 1
+        #dW[i][j] = X[i][j]
+
+    #dW[i][c] = -1 * passed * X[i][c]
+
 
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
+  dW /= num_train
 
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
+  dW += reg * W
 
   #############################################################################
   # TODO:                                                                     #
@@ -70,7 +87,13 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+  scores = X.dot(W)
+  c = scores[np.arange(len(scores)), y]
+  svm = scores - c[np.newaxis].T + 1
+  svm = svm.clip(0)
+  svm[np.arange(len(svm)), y] = 0
+  loss = svm.sum() / len(svm)
+  loss += reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -84,8 +107,18 @@ def svm_loss_vectorized(W, X, y, reg):
   # Hint: Instead of computing the gradient from scratch, it may be easier    #
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
-  #############################################################################
-  pass
+  ############################################################################
+  a = np.array(svm)
+  a[a > 0] = 1
+
+
+  row_sum = np.sum(a, axis=1)
+
+  a[np.arange(X.shape[0]), y] = -row_sum.T
+
+  dW = X.T.dot(a)
+  dW /= X.shape[0]
+  dW += reg * W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
