@@ -76,7 +76,7 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    scores = np.maximum(0, X.dot(W1) + b1).dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -93,7 +93,12 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    f = scores
+    f -= f.max(axis=1, keepdims=True)
+    fe = np.exp(f)
+    c = fe[np.arange(len(fe)), y]
+    p = c / fe.sum(axis=1)
+    loss = -np.log(p).mean() + 0.5 * reg * np.sum(W1 * W1) + 0.5 * reg * np.sum(W2 * W2)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +110,27 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    dscores = fe / fe.sum(axis=1, keepdims=True)
+    dscores[range(N), y] -= 1
+    dscores /= N
+
+    # W2 and b2
+    a1 = np.maximum(0, X.dot(W1) + b1)
+    grads['W2'] = np.dot(a1.T, dscores)
+    grads['b2'] = np.sum(dscores, axis=0)
+
+    # Propagate to hidden layer
+    dhidden = np.dot(dscores, W2.T)
+
+    # Backprop the ReLU non-linearity
+    dhidden[a1 <= 0] = 0
+
+    # Finally into W,b
+    grads['W1'] = np.dot(X.T, dhidden)
+    grads['b1'] = np.sum(dhidden, axis=0)
+
+    grads['W2'] += reg * W2
+    grads['W1'] += reg * W1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -149,7 +174,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      batch_idx = np.random.choice(len(X), batch_size, replace=True)
+      X_batch = X[batch_idx]
+      y_batch = y[batch_idx]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -164,7 +191,8 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params['W1'] -= learning_rate * grads['W1']
+      self.params['W2'] -= learning_rate * grads['W2']
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -209,7 +237,16 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    W1 = self.params['W1']
+    W2 = self.params['W2']
+    b1 = self.params['b1']
+    b2 = self.params['b2']
+
+    scores = np.maximum(0, X.dot(W1) + b1).dot(W2) + b2
+    scores -= scores.max(axis=1, keepdims=True)
+    scores = np.exp(scores)
+    scores /= scores.sum(axis=1, keepdims=True)
+    y_pred = scores.argmax(axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
